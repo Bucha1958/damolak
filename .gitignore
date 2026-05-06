@@ -1,0 +1,16 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+
+# Crash logs
+crash.log
+
+# AWS creds (if ever present locally)
+*.pem
+*.key
+
+# OS
+.DS_Store

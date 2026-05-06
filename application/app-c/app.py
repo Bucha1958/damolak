@@ -1,0 +1,11 @@
+from flask import Flask
+import requests
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    d = requests.get("http://app-d:5000").text
+    return f"App C here -> {d}"
+
+app.run(host="0.0.0.0", port=5000)
