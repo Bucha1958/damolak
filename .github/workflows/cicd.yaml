@@ -1,0 +1,85 @@
+name: CI/CD Pipeline (EKS)
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 191695618302.dkr.ecr.us-west-2.amazonaws.com
+  TAG: ${{ github.sha }}
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ---------------- AWS AUTH ----------------
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $ECR_REGISTRY
+
+      # ================= BUILD =================
+      - name: Build images
+        run: |
+          docker build -t app-a ./application/app-a
+          docker build -t app-b ./application/app-b
+          docker build -t app-c ./application/app-c
+          docker build -t app-d ./application/app-d
+
+          docker tag app-a:latest $ECR_REGISTRY/app-a:$TAG
+          docker tag app-b:latest $ECR_REGISTRY/app-b:$TAG
+          docker tag app-c:latest $ECR_REGISTRY/app-c:$TAG
+          docker tag app-d:latest $ECR_REGISTRY/app-d:$TAG
+
+          docker push $ECR_REGISTRY/app-a:$TAG
+          docker push $ECR_REGISTRY/app-b:$TAG
+          docker push $ECR_REGISTRY/app-c:$TAG
+          docker push $ECR_REGISTRY/app-d:$TAG
+
+      # ================= TEST =================
+      - name: Basic tests
+        run: |
+          echo "Running basic tests..."
+
+          pip install -r application/app-a/requirements.txt
+          python application/app-a/app.py &
+          sleep 5
+          curl -f http://localhost:5000 || exit 1
+
+          echo "App A test passed"
+
+      # ================= DEPLOY =================
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name damolak-eks
+
+      # ENSURE RESOURCES EXIST
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f application/app-a/app-a.yaml
+          kubectl apply -f application/app-b/app-b.yaml
+          kubectl apply -f application/app-c/app-c.yaml
+          kubectl apply -f application/app-d/app-d.yaml
+
+      # UPDATE IMAGES (CI/CD STEP)
+      - name: Deploy new images to EKS
+        run: |
+          kubectl set image deployment/app-a app-a=$ECR_REGISTRY/app-a:$TAG
+          kubectl set image deployment/app-b app-b=$ECR_REGISTRY/app-b:$TAG
+          kubectl set image deployment/app-c app-c=$ECR_REGISTRY/app-c:$TAG
+          kubectl set image deployment/app-d app-d=$ECR_REGISTRY/app-d:$TAG
