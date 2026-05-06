@@ -53,7 +53,8 @@ jobs:
         run: |
           echo "Running unit tests..."
 
-          pip install -r application/app-a/requirements.txt
+          cd application/app-a
+          pip install -r requirements.txt
 
           python -c "from app import app; print('App loads successfully')"
 
