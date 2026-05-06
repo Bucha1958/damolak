@@ -8,4 +8,5 @@ def home():
     b = requests.get("http://app-b:5000").text
     return f"App A here -> {b}"
 
-app.run(host="0.0.0.0", port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

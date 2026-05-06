@@ -7,5 +7,5 @@ app = Flask(__name__)
 def home():
     c = requests.get("http://app-c:5000").text
     return f"App B here -> {c}"
-
-app.run(host="0.0.0.0", port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
