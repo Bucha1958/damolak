@@ -87,13 +87,8 @@ jobs:
 
           helm upgrade --install monitoring \
             prometheus-community/kube-prometheus-stack \
-            --namespace monitoring
-
-      - name: Expose Grafana via LoadBalancer
-        run: |
-          kubectl patch svc monitoring-grafana \
-            -n monitoring \
-            -p '{"spec":{"type":"LoadBalancer"}}'
+            --namespace monitoring \
+            --set grafana.service.type=LoadBalancer
 
   # ================= K8S MANIFESTS =================
       - name: Apply Kubernetes manifests
