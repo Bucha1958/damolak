@@ -26,7 +26,7 @@ AWS credentials must also be configured locally.
 ## Clone Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Bucha1958/damolak.git
 cd damolak
 ```
 
