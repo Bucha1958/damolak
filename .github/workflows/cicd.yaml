@@ -17,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ---------------- AWS AUTH ----------------
+  # ---------------- AWS AUTH ----------------
       - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -30,7 +30,7 @@ jobs:
           aws ecr get-login-password --region $AWS_REGION | \
           docker login --username AWS --password-stdin $ECR_REGISTRY
 
-      # ================= BUILD =================
+  # ================= BUILD =================
       - name: Build images
         run: |
           docker build -t app-a ./application/app-a
@@ -42,13 +42,7 @@ jobs:
           docker tag app-b:latest $ECR_REGISTRY/app-b:$TAG
           docker tag app-c:latest $ECR_REGISTRY/app-c:$TAG
           docker tag app-d:latest $ECR_REGISTRY/app-d:$TAG
-
-          docker push $ECR_REGISTRY/app-a:$TAG
-          docker push $ECR_REGISTRY/app-b:$TAG
-          docker push $ECR_REGISTRY/app-c:$TAG
-          docker push $ECR_REGISTRY/app-d:$TAG
-
-      # ================= TEST =================
+  # ================= TEST =================
       - name: Basic tests
         run: |
           echo "Running unit tests..."
@@ -58,22 +52,30 @@ jobs:
 
           python -c "from app import app; print('App loads successfully')"
 
+  # ================= PUSH TO ECR =================
+      - name: Push images to ECR
+        run: |
+          docker push $ECR_REGISTRY/app-a:$TAG
+          docker push $ECR_REGISTRY/app-b:$TAG
+          docker push $ECR_REGISTRY/app-c:$TAG
+          docker push $ECR_REGISTRY/app-d:$TAG
+
  # ================= KUBECTL =================
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
 
-      # ================= HELM =================
+  # ================= HELM =================
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
-      # ================= EKS AUTH =================
+  # ================= EKS AUTH =================
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig \
             --region $AWS_REGION \
             --name damolak-eks
 
-      # ================= MONITORING =================
+  # ================= MONITORING =================
       - name: Add Prometheus Helm repository
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -93,7 +95,7 @@ jobs:
             -n monitoring \
             -p '{"spec":{"type":"LoadBalancer"}}'
 
-      # ================= K8S MANIFESTS =================
+  # ================= K8S MANIFESTS =================
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f application/app-a/app-a.yaml
@@ -101,7 +103,7 @@ jobs:
           kubectl apply -f application/app-c/app-c.yaml
           kubectl apply -f application/app-d/app-d.yaml
 
-      # ================= DEPLOY =================
+  # ================= DEPLOY =================
       - name: Update Kubernetes deployments
         run: |
           kubectl set image deployment/app-a app-a=$ECR_REGISTRY/app-a:$TAG
@@ -109,7 +111,7 @@ jobs:
           kubectl set image deployment/app-c app-c=$ECR_REGISTRY/app-c:$TAG
           kubectl set image deployment/app-d app-d=$ECR_REGISTRY/app-d:$TAG
 
-      # ================= VERIFY =================
+  # ================= VERIFY =================
       - name: Verify rollout status
         run: |
           kubectl rollout status deployment/app-a
@@ -117,7 +119,7 @@ jobs:
           kubectl rollout status deployment/app-c
           kubectl rollout status deployment/app-d
 
-      # ================= OBSERVABILITY CHECK =================
+  # ================= OBSERVABILITY CHECK =================
       - name: Verify monitoring stack
         run: |
           kubectl get pods -n monitoring
