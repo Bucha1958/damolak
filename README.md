@@ -9,10 +9,6 @@
 * ***Terraform-managed infrastructure***
 * ***CI/CD with GitHub Actions***
 
-## Architecture Diagram
-
-![alt text](image.png)
-
 ## Prerequisites
 
 Before running this project, ensure the following tools are installed:
@@ -160,23 +156,185 @@ To remove all infrastructure:
 terraform destroy -auto-approve
 ```
 
+## Architecture & Design Thinking
 
-## Infrastructure Components
+The infrastructure was designed with a production-oriented mindset focused on security, scalability, automation, and separation of responsibilities.
 
-**Document:**
+![alt text](image.png)
 
-### AWS Services Used
+#### 1. Why Amazon EKS Was Used
 
-* ***EKS***
-* ***ECR***
-* ***EC2***
-* ***VPC***
-* ***Subnets***
+**The application was deployed on Amazon Elastic Kubernetes Service because Kubernetes provides:**
+
+* ***Container orchestration***
+* ***Automated deployment management***
+* ***Scalability***
+* ***Self-healing capabilities***
+* ***Service discovery between microservices***
+* ***Rolling updates with minimal downtime***
+* ***Using EKS also removes the operational burden of managing the Kubernetes control plane manually.***
+
+#### 2. Why the Architecture Uses Public and Private Subnets
+**The VPC architecture was intentionally separated into:**
+
+2 Public Subnets and 2 Private Subnets across multiple Availability Zones (us-west-2a and us-west-2b) for high availability and fault tolerance.
+
+This follows standard production cloud networking practices.
+
+#### 3. Purpose of the Public Subnets
+
+**The public subnets host resources that require internet exposure.**
+
+**These include:**
+* ***AWS Load Balancer***
 * ***NAT Gateway***
-* ***Internet Gateway***
-* ***CloudWatch***
 
-## Terraform Structure
+Why the Load Balancer is Public
+The Load Balancer receives external traffic from users on the internet and routes requests into the Kubernetes cluster.
+Without a public Load Balancer:
+external users would not be able to access the application services inside Kubernetes would remain internal-only
+
+This provides controlled entry into the environment.
+
+Why the NAT Gateway is Public
+The Kubernetes worker nodes run inside private subnets and do not have direct public IP addresses.
+However, the nodes still need outbound internet access for tasks such as:
+
+* ***Pulling Docker images from Amazon ECR***
+* ***Downloading packages and updates***
+* ***Communicating with AWS APIs***
+* ***Helm chart downloads***
+* ***Monitoring integrations***
+
+The NAT Gateway enables secure outbound internet communication while keeping the worker nodes private. This is a common security best practice.
+
+#### 4. Why the EKS Worker Nodes Are in Private Subnets
+
+The Kubernetes workloads (app-a, app-b, app-c, and app-d) were deployed inside private subnets to reduce exposure to the public internet.
+
+**Benefits include:**
+* ***Improved security posture***
+* ***Reduced attack surface***
+* ***No direct SSH/public access to containers***
+* ***Internal service-to-service communication remains private***
+* ***Better alignment with production security practices***
+
+
+Only the Load Balancer is internet-facing.
+The application containers themselves are isolated inside private networking.
+
+#### This architecture ensures:
+
+external traffic enters only through controlled entry points
+
+internal services remain protected
+
+#### 5. Why Multiple Availability Zones Were Used
+
+**The infrastructure spans:**
+
+***us-west-2a***
+***us-west-2b***
+
+**This was done to improve:**
+
+* ***High availability***
+* ***Fault tolerance***
+* ***Resilience***
+
+**If one Availability Zone becomes unavailable, workloads can continue operating in the second zone.**
+**This is a common production-grade Kubernetes deployment strategy.**
+
+#### 6. Why Amazon ECR Was Used
+
+Docker images are stored in Amazon Elastic Container Registry because it integrates directly with AWS and EKS.
+
+**Benefits include:**
+* ***Secure image storage***
+* ***Simplified authentication with AWS***
+* ***Scalable container registry***
+* ***Faster deployment integration with Kubernetes***
+
+**Each microservice has its own repository:**
+
+**app-a**
+**app-b**
+**app-c**
+**app-d**
+
+***This improves image isolation and version management.***
+
+#### 7. CI/CD Design Decisions
+
+**The CI/CD pipeline was implemented using GitHub Actions.**
+
+***The pipeline performs:***
+
+```
+Source code checkout
+        |
+AWS authentication
+        |
+Docker image build
+        |
+Basic application testing
+        |
+Push images to ECR
+        |
+Kubernetes deployment updates
+        |
+Monitoring stack deployment
+        |
+Rollout verification
+```
+
+Why Testing Happens Before Push
+The pipeline validates the application before images are pushed to ECR.
+
+**This prevents:**
+
+* ***broken images from entering the registry***
+* ***failed deployments into Kubernetes***
+* ***This improves deployment reliability.***
+
+#### 8. Why Monitoring Was Added
+
+**Monitoring was implemented using:**
+1. Prometheus
+2. Grafana
+
+**The monitoring stack was deployed automatically through Helm during CI/CD execution.**
+
+**Purpose of Prometheus**
+
+**Prometheus collects:**
+* ***Kubernetes metrics***
+* ***Node metrics***
+* ***Pod resource usage***
+* ***Cluster health information***
+
+**Purpose of Grafana**
+
+**Grafana visualizes metrics through dashboards for:**
+* ***CPU usage***
+* ***Memory usage***
+* ***Pod health***
+* ***Cluster performance***
+* ***Infrastructure monitoring***
+* ***This provides observability into the Kubernetes environment.***
+
+#### 9. Why Infrastructure as Code Was Used
+
+**Infrastructure provisioning was implemented with Terraform.**
+**Benefits include:**
+* ***Repeatable deployments***
+* ***Version-controlled infrastructure***
+* ***Modular reusable components***
+* ***Easier environment recreation***
+* ***Reduced manual configuration***
+
+
+**The infrastructure was separated into reusable modules:**
 
 ```
 .
@@ -192,6 +350,19 @@ terraform destroy -auto-approve
 │   └── ec2/                 # Bastion hosts or additional compute resources
 └── README.md                # Project documentation
 ```
+
+**This improves maintainability and scalability of the codebase.**
+
+### AWS Services Used
+
+* ***EKS***
+* ***ECR***
+* ***EC2***
+* ***VPC***
+* ***Subnets***
+* ***NAT Gateway***
+* ***Internet Gateway***
+* ***LoadBalancer***
 
 ## Kubernetes Deployment
 
@@ -238,3 +409,5 @@ The following components are deployed into the monitoring namespace:
 * ***Adds the Prometheus Helm repository***
 * ***Deploys the kube-prometheus-stack***
 * ***Exposes Grafana through an AWS LoadBalancer service***
+
+
