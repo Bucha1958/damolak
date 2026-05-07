@@ -199,3 +199,42 @@ terraform destroy -auto-approve
 * ***Services***
 * ***Internal communication***
 
+## Monitoring & Observability
+
+![alt text](image-2.png)
+
+### Monitoring & Observability
+
+This project includes a fully automated observability stack deployed into the Kubernetes cluster using Prometheus and Grafana.
+
+The monitoring stack is deployed automatically through the CI/CD pipeline using Helm during every deployment workflow execution.
+
+## Observability Components
+
+The following components are deployed into the monitoring namespace:
+
+* ***Prometheus***
+* ***Grafana***
+* ***Alertmanager***
+* ***kube-state-metrics***
+* ***Node Exporter***
+
+## These components provide:
+
+* ***Kubernetes cluster monitoring***
+* ***Node-level metrics***
+* ***Pod and workload visibility***
+* ***CPU and memory utilization metrics***
+* ***Application health monitoring***
+* ***Infrastructure observability***
+* ***CI/CD Monitoring Automation***
+
+#### Monitoring deployment is fully integrated into the GitHub Actions CI/CD pipeline.
+
+**During every push to the main branch, the pipeline automatically:**
+
+* ***Configures access to the EKS cluster***
+* ***Installs Helm***
+* ***Adds the Prometheus Helm repository***
+* ***Deploys the kube-prometheus-stack***
+* ***Exposes Grafana through an AWS LoadBalancer service***
