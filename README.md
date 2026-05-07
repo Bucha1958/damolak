@@ -1,6 +1,6 @@
 # Production-Ready Microservices Deployment on AWS EKS
 
-## 2. Overview
+## Overview
 
 **Explain:**
 
@@ -9,11 +9,11 @@
 * ***Terraform-managed infrastructure***
 * ***CI/CD with GitHub Actions***
 
-## 3. Architecture Diagram
+## Architecture Diagram
 
 ![alt text](image.png)
 
-# Prerequisites
+## Prerequisites
 
 Before running this project, ensure the following tools are installed:
 
@@ -27,7 +27,7 @@ AWS credentials must also be configured locally.
 
 ---
 
-# Clone Repository
+## Clone Repository
 
 ```bash
 git clone <repository-url>
@@ -36,7 +36,7 @@ cd damolak
 
 ---
 
-# Configure AWS Credentials
+## Configure AWS Credentials
 
 ```bash
 aws configure
@@ -46,11 +46,11 @@ Provide:
 
 - AWS Access Key
 - AWS Secret Key
-- Region: us-west-2
+- Region: us-west-2 or region of your choice
 
 ---
 
-# Provision Infrastructure
+## Provision Infrastructure
 
 Initialize Terraform:
 
@@ -81,7 +81,7 @@ This provisions:
 
 ---
 
-# Configure kubectl
+## Configure kubectl
 
 After infrastructure creation:
 
@@ -99,7 +99,7 @@ kubectl get nodes
 
 ---
 
-# Deploy Applications
+## Deploy Applications
 
 Apply Kubernetes manifests:
 
@@ -121,7 +121,7 @@ kubectl get svc
 
 ---
 
-# Access Application
+## Access Application
 
 Retrieve the external LoadBalancer URL:
 
@@ -139,7 +139,7 @@ App A here -> App B here -> App C here -> App D here -> I am the final service
 
 ---
 
-# CI/CD Pipeline
+## CI/CD Pipeline
 
 The GitHub Actions pipeline automatically performs:
 
@@ -152,7 +152,7 @@ Pipeline triggers automatically on push to the `main` branch.
 
 ---
 
-# Destroy Infrastructure
+## Destroy Infrastructure
 
 To remove all infrastructure:
 
@@ -169,6 +169,7 @@ terraform destroy -auto-approve
 
 * ***EKS***
 * ***ECR***
+* ***EC2***
 * ***VPC***
 * ***Subnets***
 * ***NAT Gateway***
@@ -192,17 +193,7 @@ terraform destroy -auto-approve
 └── README.md                # Project documentation
 ```
 
-### CI/CD Pipeline
-
-**Build**
-* ***Docker images built***
-**Test**
-* ***Flask app import test***
-**Deploy**
-* ***Push to ECR***
-* ***Update Kubernetes deployments***
-
-### Kubernetes Deployment
+## Kubernetes Deployment
 
 * ***Deployments***
 * ***Services***

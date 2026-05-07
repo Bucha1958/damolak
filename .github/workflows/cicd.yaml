@@ -58,15 +58,36 @@ jobs:
 
           python -c "from app import app; print('App loads successfully')"
 
-      # ================= DEPLOY =================
+ # ================= KUBECTL =================
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
 
+      # ================= HELM =================
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      # ================= EKS AUTH =================
       - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --region $AWS_REGION --name damolak-eks
+          aws eks update-kubeconfig \
+            --region $AWS_REGION \
+            --name damolak-eks
 
-      # ENSURE RESOURCES EXIST
+      # ================= MONITORING =================
+      - name: Add Prometheus Helm repository
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+      - name: Deploy Prometheus and Grafana
+        run: |
+          kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+
+          helm upgrade --install monitoring \
+            prometheus-community/kube-prometheus-stack \
+            --namespace monitoring
+
+      # ================= K8S MANIFESTS =================
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f application/app-a/app-a.yaml
@@ -74,10 +95,23 @@ jobs:
           kubectl apply -f application/app-c/app-c.yaml
           kubectl apply -f application/app-d/app-d.yaml
 
-      # UPDATE IMAGES (CI/CD STEP)
-      - name: Deploy new images to EKS
+      # ================= DEPLOY =================
+      - name: Update Kubernetes deployments
         run: |
           kubectl set image deployment/app-a app-a=$ECR_REGISTRY/app-a:$TAG
           kubectl set image deployment/app-b app-b=$ECR_REGISTRY/app-b:$TAG
           kubectl set image deployment/app-c app-c=$ECR_REGISTRY/app-c:$TAG
           kubectl set image deployment/app-d app-d=$ECR_REGISTRY/app-d:$TAG
+
+      # ================= VERIFY =================
+      - name: Verify rollout status
+        run: |
+          kubectl rollout status deployment/app-a
+          kubectl rollout status deployment/app-b
+          kubectl rollout status deployment/app-c
+          kubectl rollout status deployment/app-d
+
+      # ================= OBSERVABILITY CHECK =================
+      - name: Verify monitoring stack
+        run: |
+          kubectl get pods -n monitoring
